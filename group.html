@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Smart News Portal</title>
+
+<style>
+body{
+    font-family: Arial;
+    margin:0;
+    background:#f4f4f4;
+}
+
+header{
+    background:#1e3a8a;
+    color:white;
+    text-align:center;
+    padding:15px;
+}
+
+nav{
+    background:#111827;
+    text-align:center;
+    padding:10px;
+}
+
+nav a{
+    color:white;
+    margin:8px;
+    cursor:pointer;
+    text-decoration:none;
+}
+
+nav a:hover{
+    color:yellow;
+}
+
+select{
+    margin:10px;
+    padding:5px;
+}
+
+.section{
+    display:none;
+    padding:20px;
+}
+
+.active{
+    display:block;
+}
+
+.card{
+    background:white;
+    padding:15px;
+    margin:10px 0;
+    border-radius:8px;
+}
+
+form{
+    width:320px;
+    margin:auto;
+    background:white;
+    padding:20px;
+    border-radius:10px;
+}
+
+input{
+    width:100%;
+    padding:8px;
+    margin:6px 0;
+}
+
+button{
+    width:100%;
+    padding:10px;
+    background:#1e3a8a;
+    color:white;
+    border:none;
+    cursor:pointer;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+<h1 id="title">RWANDA NEWS PORTAL</h1>
+
+<!-- 🌍 LANGUAGE SWITCH -->
+<select onchange="changeLanguage(this.value)">
+    <option value="en">English</option>
+    <option value="fr">Français</option>
+    <option value="rw">Kinyarwanda</option>
+</select>
+
+</header>
+
+<nav>
+<a onclick="show('home')">Home</a>
+<a onclick="show('politics')">Politics</a>
+<a onclick="show('sports')">Sports</a>
+<a onclick="show('login')">Login</a>
+<a onclick="show('register')">Register</a>
+<a onclick="show('payment')">Pay Login</a>
+</nav>
+
+<!-- HOME -->
+<div id="home" class="section active">
+    <div class="card">
+        <h2 id="welcome">Welcome to News Portal</h2>
+        <p id="desc">Read latest news from Rwanda and worldwide.</p>
+    </div>
+</div>
+
+<!-- POLITICS -->
+<div id="politics" class="section">
+    <div class="card">
+        <h2>Politics</h2>
+        <a href="https://en.igihe.com/politics-48" target="_blank">IGIHE Politics</a>
+    </div>
+</div>
+
+<!-- SPORTS -->
+<div id="sports" class="section">
+    <div class="card">
+        <h2>Sports</h2>
+        <a href="https://en.igihe.com/sports" target="_blank">IGIHE Sports</a>
+    </div>
+</div>
+
+<!-- LOGIN -->
+<div id="login" class="section">
+    <h2>Login</h2>
+    <form onsubmit="return login()">
+        <input type="text" id="email" placeholder="Email">
+        <input type="password" id="pass" placeholder="Password">
+        <button>Login</button>
+    </form>
+</div>
+
+<!-- REGISTER -->
+<div id="register" class="section">
+    <h2>Register</h2>
+    <form onsubmit="return register()">
+        <input type="text" id="name" placeholder="Full Name">
+        <input type="text" id="r_email" placeholder="Email">
+        <input type="password" id="r_pass" placeholder="Password">
+        <input type="password" id="confirm" placeholder="Confirm Password">
+        <button>Register</button>
+    </form>
+</div>
+
+<!-- 💳 PAYMENT LOGIN (DEMO CARD SYSTEM) -->
+<div id="payment" class="section">
+    <h2>Payment Card Login (Demo)</h2>
+
+    <form onsubmit="return payLogin()">
+        <input type="text" id="cardName" placeholder="Card Holder Name">
+        <input type="text" id="cardNumber" placeholder="Card Number (16 digits)">
+        <input type="text" id="exp" placeholder="Expiry MM/YY">
+        <input type="password" id="cvv" placeholder="CVV">
+        <button>Pay & Login</button>
+    </form>
+
+    <p style="text-align:center;color:red;">
+        ⚠ This is a demo system (no real payment)
+    </p>
+</div>
+
+<script>
+
+function show(page){
+    let sec = document.querySelectorAll(".section");
+    sec.forEach(s => s.classList.remove("active"));
+    document.getElementById(page).classList.add("active");
+}
+
+/* LOGIN */
+function login(){
+    alert("Login successful!");
+    return false;
+}
+
+/* REGISTER */
+function register(){
+    let p = document.getElementById("r_pass").value;
+    let c = document.getElementById("confirm").value;
+
+    if(p !== c){
+        alert("Passwords do not match");
+        return false;
+    }
+
+    alert("Account created!");
+    return false;
+}
+
+/* 💳 PAYMENT LOGIN (DEMO VALIDATION) */
+function payLogin(){
+    let card = document.getElementById("cardNumber").value;
+
+    if(card.length !== 16 || isNaN(card)){
+        alert("Invalid card number (must be 16 digits)");
+        return false;
+    }
+
+    alert("Payment successful & login granted!");
+    return false;
+}
+
+/* 🌍 LANGUAGE SYSTEM */
+const lang = {
+    en:{
+        welcome:"Welcome to News Portal",
+        desc:"Read latest news from Rwanda and worldwide",
+        title:"RWANDA NEWS PORTAL"
+    },
+    fr:{
+        welcome:"Bienvenue au portail d'actualités",
+        desc:"Lire les dernières nouvelles du Rwanda et du monde",
+        title:"PORTAIL D'ACTUALITÉS RWANDA"
+    },
+    rw:{
+        welcome:"Murakaza neza ku rubuga rw'amakuru",
+        desc:"Soma amakuru mashya yo mu Rwanda no ku isi",
+        title:"URUBUGA RW'AMAKURU RWANDA"
+    }
+};
+
+function changeLanguage(l){
+    document.getElementById("welcome").innerText = lang[l].welcome;
+    document.getElementById("desc").innerText = lang[l].desc;
+    document.getElementById("title").innerText = lang[l].title;
+}
+
+</script>
+
+</body>
+</html>
