@@ -1,11 +1,5 @@
 <?php
-require 'config.php';
-
-// Destroy session
-$_SESSION = [];
+require_once __DIR__ . '/inc/functions.php';
 session_destroy();
-
-// Redirect to login page
-header('Location: login.html');
+header('Location: index.php');
 exit;
-?>
