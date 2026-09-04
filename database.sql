@@ -1,36 +1,50 @@
-CREATE DATABASE IF NOT EXISTS inventory_system;
+CREATE DATABASE library_system;
 
-USE inventory_system;
-
-CREATE TABLE IF NOT EXISTS users (
+USE library_system;
+CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     full_name VARCHAR(100) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
+    role VARCHAR(50) DEFAULT 'Librarian',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
-CREATE TABLE IF NOT EXISTS products (
+CREATE TABLE students (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    product_code VARCHAR(50) NOT NULL UNIQUE,
-    product_name VARCHAR(150) NOT NULL,
-    category VARCHAR(100) NOT NULL,
-    supplier VARCHAR(150),
-    unit_price DECIMAL(12,2) NOT NULL DEFAULT 0,
-    quantity INT NOT NULL DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP
+    registration_number VARCHAR(30) NOT NULL UNIQUE,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    phone VARCHAR(20),
+    email VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
-CREATE TABLE IF NOT EXISTS stock_transactions (
+CREATE TABLE books (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    product_id INT NOT NULL,
-    transaction_type ENUM('IN','OUT') NOT NULL,
-    quantity INT NOT NULL,
-    transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    book_code VARCHAR(30) NOT NULL UNIQUE,
+    title VARCHAR(200) NOT NULL,
+    author VARCHAR(100) NOT NULL,
+    category VARCHAR(100),
+    quantity INT NOT NULL DEFAULT 1,
+    available_quantity INT NOT NULL DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE loans (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    loan_id VARCHAR(30) NOT NULL UNIQUE,
+    student_id INT NOT NULL,
+    book_id INT NOT NULL,
+    borrow_date DATE NOT NULL,
+    expected_return_date DATE NOT NULL,
+    actual_return_date DATE DEFAULT NULL,
+    status VARCHAR(30) DEFAULT 'Borrowed',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (product_id)
-        REFERENCES products(id)
+    FOREIGN KEY (student_id)
+        REFERENCES students(id)
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (book_id)
+        REFERENCES books(id)
         ON DELETE CASCADE
 );
+

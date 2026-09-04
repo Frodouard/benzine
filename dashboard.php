@@ -2,55 +2,43 @@
 
 session_start();
 
-require_once "config.php";
+include "config.php";
 
 if (!isset($_SESSION["user_id"])) {
 
     header("Location: login.php");
 
-    exit;
+    exit();
 }
 
-$total_products = 0;
-$total_quantity = 0;
-$total_value = 0;
+$students = 0;
+$books = 0;
+$borrowed = 0;
+$message = "";
 
 try {
 
-    $result = $conn->query(
+    $students = $conn->query(
         "SELECT COUNT(*) AS total
-         FROM products"
-    );
+         FROM students"
+    )->fetch_assoc()["total"];
 
-    $total_products =
-        $result->fetch_assoc()["total"];
+    $books = $conn->query(
+        "SELECT COUNT(*) AS total
+         FROM books"
+    )->fetch_assoc()["total"];
 
-    $result = $conn->query(
-        "SELECT COALESCE(
-            SUM(quantity), 0
-         ) AS total
-         FROM products"
-    );
-
-    $total_quantity =
-        $result->fetch_assoc()["total"];
-
-    $result = $conn->query(
-        "SELECT COALESCE(
-            SUM(unit_price * quantity),
-            0
-         ) AS total
-         FROM products"
-    );
-
-    $total_value =
-        $result->fetch_assoc()["total"];
+    $borrowed = $conn->query(
+        "SELECT COUNT(*) AS total
+         FROM loans
+         WHERE status = 'Borrowed'"
+    )->fetch_assoc()["total"];
 
 } catch (mysqli_sql_exception $e) {
 
-    $dashboard_error =
-        "Could not load dashboard statistics.";
+    error_log("Dashboard error: " . $e->getMessage());
 
+    $message = "Could not load dashboard statistics. Please make sure the database is set up correctly (import database.sql).";
 }
 
 ?>
@@ -60,10 +48,12 @@ try {
 
 <head>
 
-<title>Dashboard</title>
+    <meta charset="UTF-8">
 
-<link rel="stylesheet"
-      href="css/style.css">
+    <title>Library Dashboard</title>
+
+    <link rel="stylesheet"
+          href="Style.css">
 
 </head>
 
@@ -71,94 +61,88 @@ try {
 
 <nav>
 
-<div class="logo">
-Inventory Management System
-</div>
+    <h2>Library System</h2>
 
-<a href="dashboard.php">
-Dashboard
-</a>
+    <a href="dashboard.php">
+        Dashboard
+    </a>
 
-<a href="products/product_add.php">
-Add Product
-</a>
+    <a href="rstudents_add.php">
+        Students
+    </a>
 
-<a href="products/product_list.php">
-Products
-</a>
+    <a href="books.php">
+        Books
+    </a>
 
-<a href="products/product_search.php">
-Search
-</a>
+    <a href="loans.php">
+        Borrow Book
+    </a>
 
-<a href="reports/inventory.php">
-Report
-</a>
+    <a href="loans-list.php">
+        Loans
+    </a>
 
-<a href="logout.php">
-Logout
-</a>
+    <a href="logout.php">
+        Logout
+    </a>
 
 </nav>
 
-<div class="container">
+<div class="dashboard">
 
-<?php if (isset($dashboard_error)): ?>
+    <h1>
+        Welcome,
+        <?php
+        echo htmlspecialchars(
+            $_SESSION["full_name"]
+        );
+        ?>
+    </h1>
 
-<div class="error">
-<?= htmlspecialchars($dashboard_error) ?>
-</div>
+    <?php if ($message != ""): ?>
 
-<?php endif; ?>
+        <p class="error">
+            <?php echo htmlspecialchars($message); ?>
+        </p>
 
-<h1>
-Welcome,
-<?= htmlspecialchars(
-    $_SESSION["full_name"]
-) ?>
-</h1>
+    <?php endif; ?>
 
-<div class="cards">
+    <div class="cards">
 
-<div class="card">
+        <div class="card">
 
-<h3>Total Products</h3>
+            <h3>Students</h3>
 
-<h1>
-<?= $total_products ?>
-</h1>
+            <p>
+                <?php echo $students; ?>
+            </p>
 
-</div>
+        </div>
 
-<div class="card">
+        <div class="card">
 
-<h3>Total Quantity</h3>
+            <h3>Books</h3>
 
-<h1>
-<?= $total_quantity ?>
-</h1>
+            <p>
+                <?php echo $books; ?>
+            </p>
 
-</div>
+        </div>
 
-<div class="card">
+        <div class="card">
 
-<h3>Total Stock Value</h3>
+            <h3>Borrowed Books</h3>
 
-<h1>
-<?= number_format(
-    $total_value,
-    2
-) ?>
-</h1>
+            <p>
+                <?php echo $borrowed; ?>
+            </p>
 
-<p>RWF</p>
+        </div>
 
-</div>
-
-</div>
+    </div>
 
 </div>
 
 </body>
-
 </html>

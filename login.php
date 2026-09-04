@@ -2,37 +2,38 @@
 
 session_start();
 
-require_once "config.php";
+include "config.php";
 
 $message = "";
+$is_error = true;
+
+if (!empty($_SESSION["flash_message"])) {
+
+    $message = $_SESSION["flash_message"];
+
+    $is_error = false;
+
+    unset($_SESSION["flash_message"]);
+}
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     $email = trim($_POST["email"] ?? "");
     $password = $_POST["password"] ?? "";
 
-    if (
-        $email == "" ||
-        $password == ""
-    ) {
+    if ($email === "" || $password === "") {
 
-        $message =
-            "Please enter your email and password.";
+        $message = "Please enter both email and password.";
 
     } else {
 
         try {
 
-            $stmt = $conn->prepare(
-                "SELECT id, full_name, password
-                 FROM users
-                 WHERE email = ?"
-            );
+            $sql = "SELECT * FROM users WHERE email = ?";
 
-            $stmt->bind_param(
-                "s",
-                $email
-            );
+            $stmt = $conn->prepare($sql);
+
+            $stmt->bind_param("s", $email);
 
             $stmt->execute();
 
@@ -40,49 +41,32 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             if ($result->num_rows == 1) {
 
-                $user =
-                    $result->fetch_assoc();
+                $user = $result->fetch_assoc();
 
-                if (
-                    password_verify(
-                        $password,
-                        $user["password"]
-                    )
-                ) {
+                if (password_verify($password, $user["password"])) {
 
                     session_regenerate_id(true);
 
-                    $_SESSION["user_id"] =
-                        $user["id"];
+                    $_SESSION["user_id"] = $user["id"];
+                    $_SESSION["full_name"] = $user["full_name"];
 
-                    $_SESSION["full_name"] =
-                        $user["full_name"];
+                    header("Location: dashboard.php");
 
-                    header(
-                        "Location: dashboard.php"
-                    );
-
-                    exit;
-
+                    exit();
                 } else {
 
-                    $message =
-                        "Incorrect password.";
-
+                    $message = "Incorrect email or password.";
                 }
-
             } else {
 
-                $message =
-                    "Account not found.";
-
+                $message = "Incorrect email or password.";
             }
 
         } catch (mysqli_sql_exception $e) {
 
-            $message =
-                "Login failed. Please try again.";
+            error_log("Login error: " . $e->getMessage());
 
+            $message = "Something went wrong. Please try again.";
         }
     }
 }
@@ -90,68 +74,65 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 ?>
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
 
-<title>Login</title>
+    <meta charset="UTF-8">
 
-<link rel="stylesheet"
-      href="css/style.css">
+    <title>Library Login</title>
+
+    <link rel="stylesheet"
+          href="Style.css">
 
 </head>
 
 <body>
 
-<div class="auth-container">
+<div class="form-container">
 
-<h1>Inventory System</h1>
+    <h2>Librarian Login</h2>
 
-<h2>Staff Login</h2>
+    <?php if ($message != ""): ?>
 
-<?php if ($message): ?>
+        <p class="<?php echo $is_error ? "error" : "message"; ?>">
+            <?php echo htmlspecialchars($message); ?>
+        </p>
 
-<div class="error">
-<?= htmlspecialchars($message) ?>
-</div>
+    <?php endif; ?>
 
-<?php endif; ?>
+    <form method="POST">
 
-<form method="POST">
+        <label>Email</label>
 
-<label>Email</label>
+        <input
+            type="email"
+            name="email"
+            required
+        >
 
-<input
-    type="email"
-    name="email"
-    required
->
+        <label>Password</label>
 
-<label>Password</label>
+        <input
+            type="password"
+            name="password"
+            required
+        >
 
-<input
-    type="password"
-    name="password"
-    required
->
+        <button type="submit">
+            Login
+        </button>
 
-<button type="submit">
-Login
-</button>
+    </form>
 
-</form>
-
-<p>
-Don't have an account?
-
-<a href="register.php">
-Register
-</a>
-
-</p>
+    <p>
+        Don't have an account?
+        <a href="register.php">
+            Register
+        </a>
+    </p>
 
 </div>
 
 </body>
-
 </html>

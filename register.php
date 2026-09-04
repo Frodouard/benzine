@@ -2,9 +2,16 @@
 
 session_start();
 
-require_once "config.php";
+include "config.php";
 
 $message = "";
+
+if (isset($_SESSION["user_id"])) {
+
+    header("Location: dashboard.php");
+
+    exit();
+}
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
@@ -18,86 +25,49 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         empty($password)
     ) {
 
-        $message = "All fields are required.";
+        $message = "Please fill in all fields.";
+
+    } elseif (strlen($password) < 6) {
+
+        $message = "Password must be at least 6 characters.";
 
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 
-        $message =
-            "Please enter a valid email address.";
-
-    } elseif (strlen($password) < 8) {
-
-        $message =
-            "Password must be at least 8 characters long.";
+        $message = "Please enter a valid email address.";
 
     } else {
 
+        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+
         try {
 
-            $check = $conn->prepare(
-                "SELECT id
-                 FROM users
-                 WHERE email = ?"
-            );
+            $sql = "INSERT INTO users
+                    (full_name, email, password)
+                    VALUES (?, ?, ?)";
 
-            $check->bind_param(
-                "s",
-                $email
-            );
+            $stmt = $conn->prepare($sql);
 
-            $check->execute();
+            $stmt->bind_param("sss", $full_name, $email, $hashed_password);
 
-            $result = $check->get_result();
+            $stmt->execute();
 
-            if ($result->num_rows > 0) {
+            $_SESSION["flash_message"] = "Registration successful. You can now log in.";
 
-                $message =
-                    "Email already exists.";
+            header("Location: login.php");
 
-            } else {
-
-                $hashed_password =
-                    password_hash(
-                        $password,
-                        PASSWORD_DEFAULT
-                    );
-
-                $stmt = $conn->prepare(
-                    "INSERT INTO users
-                    (
-                        full_name,
-                        email,
-                        password
-                    )
-                    VALUES (?, ?, ?)"
-                );
-
-                $stmt->bind_param(
-                    "sss",
-                    $full_name,
-                    $email,
-                    $hashed_password
-                );
-
-                $stmt->execute();
-
-                $message =
-                    "Registration successful. You can login now.";
-
-            }
+            exit();
 
         } catch (mysqli_sql_exception $e) {
 
+            error_log("Registration error: " . $e->getMessage());
+
             if ($e->getCode() == 1062) {
 
-                $message =
-                    "Email already exists.";
+                $message = "Registration failed. This email is already registered.";
 
             } else {
 
-                $message =
-                    "Registration failed. Please try again.";
-
+                $message = "Registration failed. Please try again.";
             }
         }
     }
@@ -106,76 +76,75 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 ?>
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
 
-<title>Staff Registration</title>
+    <meta charset="UTF-8">
 
-<link rel="stylesheet"
-      href="css/style.css">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Librarian Registration</title>
+
+    <link rel="stylesheet"
+          href="Style.css">
 
 </head>
 
 <body>
 
-<div class="auth-container">
+<div class="form-container">
 
-<h1>Inventory System</h1>
+    <h2>Librarian Registration</h2>
 
-<h2>Staff Registration</h2>
+    <?php if ($message != ""): ?>
 
-<?php if ($message): ?>
+        <p class="error">
+            <?php echo htmlspecialchars($message); ?>
+        </p>
 
-<div class="message">
-<?= htmlspecialchars($message) ?>
-</div>
+    <?php endif; ?>
 
-<?php endif; ?>
+    <form method="POST">
 
-<form method="POST">
+        <label>Full Name</label>
 
-<label>Full Name</label>
+        <input
+            type="text"
+            name="full_name"
+            required
+        >
 
-<input
-    type="text"
-    name="full_name"
-    required
->
+        <label>Email</label>
 
-<label>Email</label>
+        <input
+            type="email"
+            name="email"
+            required
+        >
 
-<input
-    type="email"
-    name="email"
-    required
->
+        <label>Password</label>
 
-<label>Password</label>
+        <input
+            type="password"
+            name="password"
+            minlength="6"
+            required
+        >
 
-<input
-    type="password"
-    name="password"
-    required
->
+        <button type="submit">
+            Register
+        </button>
 
-<button type="submit">
-Register
-</button>
+    </form>
 
-</form>
-
-<p>
-Already registered?
-
-<a href="login.php">
-Login
-</a>
-
-</p>
+    <p>
+        Already have an account?
+        <a href="login.php">Login</a>
+    </p>
 
 </div>
 
 </body>
-
 </html>
