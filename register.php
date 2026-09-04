@@ -1,150 +1,67 @@
 <?php
+require 'config.php';
 
-session_start();
+header('Content-Type: application/json');
 
-include "config.php";
-
-$message = "";
-
-if (isset($_SESSION["user_id"])) {
-
-    header("Location: dashboard.php");
-
-    exit();
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    echo json_encode(['success' => false, 'message' => 'Invalid request']);
+    exit;
 }
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+$fullname  = trim($_POST['fullname'] ?? '');
+$username  = trim($_POST['username'] ?? '');
+$email     = trim($_POST['email'] ?? '');
+$password  = $_POST['password'] ?? '';
+$confirm   = $_POST['confirm'] ?? '';
+$phone     = trim($_POST['phone'] ?? '');
+$gender    = trim($_POST['gender'] ?? '');
+$terms     = isset($_POST['terms']);
 
-    $full_name = trim($_POST["full_name"] ?? "");
-    $email = trim($_POST["email"] ?? "");
-    $password = $_POST["password"] ?? "";
+$errors = [];
 
-    if (
-        empty($full_name) ||
-        empty($email) ||
-        empty($password)
-    ) {
+if (empty($fullname))               $errors[] = 'Full name is required';
+if (strlen($username) < 3)          $errors[] = 'Username must be at least 3 characters';
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Invalid email address';
+if (strlen($password) < 6)          $errors[] = 'Password must be at least 6 characters';
+if ($password !== $confirm)         $errors[] = 'Passwords do not match';
+if (!$terms)                        $errors[] = 'You must accept the Terms';
 
-        $message = "Please fill in all fields.";
-
-    } elseif (strlen($password) < 6) {
-
-        $message = "Password must be at least 6 characters.";
-
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-
-        $message = "Please enter a valid email address.";
-
-    } else {
-
-        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-
-        try {
-
-            $sql = "INSERT INTO users
-                    (full_name, email, password)
-                    VALUES (?, ?, ?)";
-
-            $stmt = $conn->prepare($sql);
-
-            $stmt->bind_param("sss", $full_name, $email, $hashed_password);
-
-            $stmt->execute();
-
-            $_SESSION["flash_message"] = "Registration successful. You can now log in.";
-
-            header("Location: login.php");
-
-            exit();
-
-        } catch (mysqli_sql_exception $e) {
-
-            error_log("Registration error: " . $e->getMessage());
-
-            if ($e->getCode() == 1062) {
-
-                $message = "Registration failed. This email is already registered.";
-
-            } else {
-
-                $message = "Registration failed. Please try again.";
-            }
-        }
-    }
+if (!empty($errors)) {
+    echo json_encode(['success' => false, 'message' => implode('. ', $errors)]);
+    exit;
 }
 
-?>
+$pdo = getDB();
 
-<!DOCTYPE html>
-<html lang="en">
+$stmt = $pdo->prepare("SELECT id, email, username FROM users WHERE email = ? OR username = ?");
+$stmt->execute([$email, $username]);
+$existing = $stmt->fetch();
 
-<head>
+if ($existing) {
+    $field = strtolower($existing['email']) === strtolower($email) ? 'email' : 'username';
+    $msg = $field === 'email' ? 'Email already registered' : 'Username already taken';
+    echo json_encode(['success' => false, 'message' => $msg]);
+    exit;
+}
 
-    <meta charset="UTF-8">
+$stmt = $pdo->prepare("INSERT INTO users (fullname, username, email, password, phone, gender, registered_at) VALUES (?, ?, ?, ?, ?, ?, NOW())");
+$stmt->execute([
+    htmlspecialchars($fullname),
+    htmlspecialchars($username),
+    htmlspecialchars($email),
+    password_hash($password, PASSWORD_DEFAULT),
+    htmlspecialchars($phone),
+    htmlspecialchars($gender),
+]);
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
+$userId = $pdo->lastInsertId();
 
-    <title>Librarian Registration</title>
+$_SESSION['user_id']   = $userId;
+$_SESSION['username']  = $username;
+$_SESSION['fullname']  = $fullname;
 
-    <link rel="stylesheet"
-          href="Style.css">
-
-</head>
-
-<body>
-
-<div class="form-container">
-
-    <h2>Librarian Registration</h2>
-
-    <?php if ($message != ""): ?>
-
-        <p class="error">
-            <?php echo htmlspecialchars($message); ?>
-        </p>
-
-    <?php endif; ?>
-
-    <form method="POST">
-
-        <label>Full Name</label>
-
-        <input
-            type="text"
-            name="full_name"
-            required
-        >
-
-        <label>Email</label>
-
-        <input
-            type="email"
-            name="email"
-            required
-        >
-
-        <label>Password</label>
-
-        <input
-            type="password"
-            name="password"
-            minlength="6"
-            required
-        >
-
-        <button type="submit">
-            Register
-        </button>
-
-    </form>
-
-    <p>
-        Already have an account?
-        <a href="login.php">Login</a>
-    </p>
-
-</div>
-
-</body>
-</html>
+echo json_encode([
+    'success'  => true,
+    'message'  => 'Registration successful! Redirecting to profile...',
+    'redirect' => 'profile.php'
+]);
