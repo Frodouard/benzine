@@ -1,73 +1,52 @@
 <?php
-require_once __DIR__ . '/inc/functions.php';
+require_once __DIR__ . '/../inc/functions.php';
+requireAdmin();
 $page = 'products';
-$title = 'Products - MICKY SHOP';
-$search = trim($_GET['search'] ?? '');
-$categoryId = isset($_GET['category']) ? (int)$_GET['category'] : 0;
-$categories = getCategories();
-$products = getProducts($search ?: null, $categoryId ?: null);
-$count = count($products);
-require __DIR__ . '/inc/header.php';
+$title = 'Manage Products - MICKY SHOP Admin';
+$pdo = getDb();
+$products = $pdo->query('SELECT p.*, c.name AS category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id ORDER BY p.created_at DESC')->fetchAll();
+require __DIR__ . '/../inc/admin_header.php';
 ?>
-<section class="section">
+<section class="section-tight">
     <div class="container">
-        <div class="section-head">
-            <span class="kicker">Marketplace</span>
-            <h2>All products</h2>
-            <p><?php echo $count; ?> product<?php echo $count === 1 ? '' : 's'; ?> available
-                <?php echo $search ? 'for &ldquo;' . e($search) . '&rdquo;' : ''; ?>
-            </p>
+        <div class="page-head">
+            <h2>Products <span class="muted" style="font-size:.9rem;font-weight:400;">(<?php echo count($products); ?>)</span></h2>
+            <div class="actions">
+                <a class="btn small" href="product_form.php">+ Add product</a>
+                <a class="btn outline small" href="export_products.php">Export CSV</a>
+            </div>
         </div>
 
-        <div class="filter-bar">
-            <form action="products.php" method="get">
-                <div class="search-wrap">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-                    <input type="search" name="search" placeholder="Search products..." value="<?php echo e($search); ?>">
-                </div>
-                <select name="category" onchange="this.form.submit()">
-                    <option value="">All categories</option>
-                    <?php foreach ($categories as $cat): ?>
-                        <option value="<?php echo (int)$cat['id']; ?>" <?php echo $categoryId === (int)$cat['id'] ? 'selected' : ''; ?>><?php echo e($cat['name']); ?></option>
-                    <?php endforeach; ?>
-                </select>
-                <button class="btn" type="submit">Search</button>
-                <a class="btn outline small" href="products.php">Reset</a>
-            </form>
-            <a class="btn outline small" href="catalog.php">Download catalog (CSV)</a>
+        <div class="table-wrap">
+            <div class="table-scroll">
+                <table>
+                    <thead><tr><th>ID</th><th>Product</th><th>Category</th><th>Price</th><th>Created</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        <?php foreach ($products as $product): ?>
+                        <tr>
+                            <td>#<?php echo (int)$product['id']; ?></td>
+                            <td>
+                                <div style="display:flex;align-items:center;gap:10px;">
+                                    <img src="<?php echo e($product['image'] ?: '../assets/images/default.png'); ?>" alt="" style="width:44px;height:44px;border-radius:10px;object-fit:cover;">
+                                    <strong><?php echo e($product['name']); ?></strong>
+                                </div>
+                            </td>
+                            <td><?php echo e($product['category_name'] ?: 'Uncategorized'); ?></td>
+                            <td>$<?php echo formatPrice($product['price']); ?></td>
+                            <td><?php echo e($product['created_at']); ?></td>
+                            <td>
+                                <div class="flex" style="gap:6px;flex-wrap:nowrap;">
+                                    <a class="icon-link" href="product_form.php?id=<?php echo (int)$product['id']; ?>">Edit</a>
+                                    <a class="icon-link" href="product_photo.php?id=<?php echo (int)$product['id']; ?>">Photo</a>
+                                    <a class="icon-link danger" href="product_delete.php?id=<?php echo (int)$product['id']; ?>" onclick="return confirm('Delete this product?');">Delete</a>
+                                </div>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
-
-        <?php if (!$products): ?>
-            <div class="empty-state">
-                <div class="e-ico">🔍</div>
-                <h3>No products found</h3>
-                <p>Try a different search term or category.</p>
-                <a class="btn" href="products.php">View all products</a>
-            </div>
-        <?php else: ?>
-            <div class="card-grid">
-                <?php foreach ($products as $product): ?>
-                <article class="card">
-                    <div class="media">
-                        <a href="product.php?id=<?php echo (int)$product['id']; ?>">
-                            <img src="<?php echo e($product['image'] ?: 'assets/images/default.png'); ?>" alt="<?php echo e($product['name']); ?>">
-                        </a>
-                        <?php if (!empty($product['category_name'])): ?>
-                            <span class="cat-chip"><?php echo e($product['category_name']); ?></span>
-                        <?php endif; ?>
-                    </div>
-                    <div class="card-body">
-                        <h3><a href="product.php?id=<?php echo (int)$product['id']; ?>"><?php echo e($product['name']); ?></a></h3>
-                        <p class="desc"><?php echo e(substr($product['description'], 0, 80)); ?></p>
-                        <div class="card-row">
-                            <span class="price">$<?php echo formatPrice($product['price']); ?></span>
-                            <a class="btn small" href="product.php?id=<?php echo (int)$product['id']; ?>">Details</a>
-                        </div>
-                    </div>
-                </article>
-                <?php endforeach; ?>
-            </div>
-        <?php endif; ?>
     </div>
 </section>
-<?php require __DIR__ . '/inc/footer.php'; ?>
+<?php require __DIR__ . '/../inc/admin_footer.php'; ?>

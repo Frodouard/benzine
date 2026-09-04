@@ -1,8 +1,5 @@
 <?php
-require_once __DIR__ . '/inc/functions.php';
-$page = 'login';
-$title = 'Login - MICKY SHOP';
-$bodyClass = 'auth-body';
+require_once __DIR__ . '/../inc/functions.php';
 $message = flash();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -10,37 +7,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
 
     $pdo = getDb();
-    $stmt = $pdo->prepare('SELECT * FROM users WHERE email = ?');
-    $stmt->execute([$email]);
-    $user = $stmt->fetch();
-    if ($user && !$user['is_active']) {
-        flash('Your account has been blocked. Contact MICKY SHOP for help.');
-        header('Location: login.php');
+    $stmt = $pdo->prepare('SELECT * FROM users WHERE email = ? AND role = ?');
+    $stmt->execute([$email, 'admin']);
+    $admin = $stmt->fetch();
+    if ($admin && !$admin['is_active']) {
+        flash('This account has been blocked.');
+        header('Location: admin/login.php');
         exit;
     }
-    if ($user && password_verify($password, $user['password'])) {
-        unset($user['password']);
-        $_SESSION['user'] = $user;
-        if ($user['role'] === 'admin') {
-            header('Location: admin/dashboard.php');
-        } elseif ($user['role'] === 'trader') {
-            header('Location: trader/index.php');
-        } else {
-            header('Location: index.php');
-        }
+    if ($admin && password_verify($password, $admin['password'])) {
+        unset($admin['password']);
+        $_SESSION['user'] = $admin;
+        header('Location: dashboard.php');
         exit;
     }
-    flash('Invalid login credentials.');
-    header('Location: login.php');
+    flash('Invalid admin credentials.');
+    header('Location: admin/login.php');
     exit;
 }
-require __DIR__ . '/inc/header.php';
 ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - MICKY SHOP</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
 <div class="auth-wrap">
     <div class="auth-card">
         <div class="logo"><span class="brand-mark">M</span></div>
-        <h2>Welcome back</h2>
-        <p class="lead">Login to your MICKY SHOP account</p>
+        <h2>Admin Login</h2>
+        <p class="lead">Restricted area &middot; MICKY SHOP</p>
         <?php if ($message): ?><div class="alert"><?php echo e($message); ?></div><?php endif; ?>
         <form method="post" class="form-grid">
             <div class="field">
@@ -53,7 +55,8 @@ require __DIR__ . '/inc/header.php';
             </div>
             <button class="btn block" type="submit">Login</button>
         </form>
-        <p class="auth-alt">Don't have an account? <a href="register.php"><strong>Register now</strong></a></p>
+        <p class="auth-alt"><a href="../index.php">&larr; Back to shop</a></p>
     </div>
 </div>
-<?php require __DIR__ . '/inc/footer.php'; ?>
+</body>
+</html>
