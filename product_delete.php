@@ -1,11 +1,12 @@
 <?php
 require_once __DIR__ . '/../inc/functions.php';
-requireAdmin();
+requireTrader();
+$trader = $_SESSION['user'];
 $id = intval($_GET['id'] ?? 0);
 if ($id) {
     $pdo = getDb();
-    $stmt = $pdo->prepare('DELETE FROM products WHERE id = ?');
-    $stmt->execute([$id]);
+    $stmt = $pdo->prepare('DELETE FROM products WHERE id = ? AND seller_id = ?');
+    $stmt->execute([$id, $trader['id']]);
 }
-header('Location: products.php');
+header('Location: index.php');
 exit;

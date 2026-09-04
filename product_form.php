@@ -1,15 +1,23 @@
 <?php
 require_once __DIR__ . '/../inc/functions.php';
-requireAdmin();
-$page = 'product_form';
+requireTrader();
+$page = 'trader_form';
+$trader = $_SESSION['user'];
 $pdo = getDb();
 $categories = getCategories();
 $product = null;
 
 if (!empty($_GET['id'])) {
-    $product = getProduct($_GET['id']);
+    $stmt = $pdo->prepare('SELECT * FROM products WHERE id = ? AND seller_id = ?');
+    $stmt->execute([$_GET['id'], $trader['id']]);
+    $product = $stmt->fetch();
+    if (!$product) {
+        flash('Product not found.');
+        header('Location: index.php');
+        exit;
+    }
 }
-$title = $product ? 'Edit Product - MICKY SHOP Admin' : 'Add Product - MICKY SHOP Admin';
+$title = $product ? 'Edit Product - MICKY SHOP' : 'Add Product - MICKY SHOP';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = trim($_POST['name'] ?? '');
@@ -23,20 +31,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0755, true);
         }
-        $target = $uploadDir . basename($_FILES['image']['name']);
-        move_uploaded_file($_FILES['image']['tmp_name'], $target);
-        $image = 'assets/images/' . basename($_FILES['image']['name']);
+        $ext = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
+        $filename = $trader['id'] . '_' . bin2hex(random_bytes(8)) . '.' . $ext;
+        if (move_uploaded_file($_FILES['image']['tmp_name'], $uploadDir . $filename)) {
+            $image = 'assets/images/' . $filename;
+        }
     }
 
     if ($product) {
-        $stmt = $pdo->prepare("UPDATE products SET name = ?, description = ?, price = ?, category_id = ?, image = COALESCE(NULLIF(?, ''), image) WHERE id = ?");
-        $stmt->execute([$name, $description, $price, $category_id, $image, $product['id']]);
+        $stmt = $pdo->prepare('UPDATE products SET name = ?, description = ?, price = ?, category_id = ?, image = COALESCE(NULLIF(?, \'\'), image) WHERE id = ? AND seller_id = ?');
+        $stmt->execute([$name, $description, $price, $category_id, $image, $product['id'], $trader['id']]);
     } else {
-        $stmt = $pdo->prepare('INSERT INTO products (name, description, price, category_id, image) VALUES (?, ?, ?, ?, ?)');
-        $stmt->execute([$name, $description, $price, $category_id, $image]);
+        $stmt = $pdo->prepare('INSERT INTO products (name, description, price, category_id, seller_id, image) VALUES (?, ?, ?, ?, ?, ?)');
+        $stmt->execute([$name, $description, $price, $category_id, $trader['id'], $image]);
     }
     flash('Product saved.');
-    header('Location: products.php');
+    header('Location: index.php');
     exit;
 }
 require __DIR__ . '/../inc/admin_header.php';
@@ -45,7 +55,7 @@ require __DIR__ . '/../inc/admin_header.php';
     <div class="container">
         <div class="page-head">
             <h2><?php echo $product ? 'Edit product' : 'Add product'; ?></h2>
-            <a class="btn outline small" href="products.php">&larr; Back to products</a>
+            <a class="btn outline small" href="index.php">&larr; Back to my products</a>
         </div>
 
         <div class="form-card" style="max-width:640px;">
@@ -76,14 +86,14 @@ require __DIR__ . '/../inc/admin_header.php';
                 <div class="field">
                     <label for="image">Image</label>
                     <input type="file" name="image" id="image" accept="image/*">
-                    <span class="hint">Upload JPG, PNG, GIF or WebP. Leave empty to keep the current photo.</span>
+                    <span class="hint">Leave empty to keep the current photo. You can also use the photo upload page.</span>
                     <?php if (!empty($product['image'])): ?>
                         <img class="admin-product-image" src="../<?php echo e($product['image']); ?>" alt="<?php echo e($product['name']); ?>">
                     <?php endif; ?>
                 </div>
                 <div class="flex">
                     <button class="btn" type="submit"><?php echo $product ? 'Save changes' : 'Add product'; ?></button>
-                    <a class="btn outline" href="products.php">Cancel</a>
+                    <a class="btn outline" href="index.php">Cancel</a>
                 </div>
             </form>
         </div>
